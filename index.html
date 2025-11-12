@@ -653,29 +653,29 @@
       ctx.drawImage(img, (WIDTH - 300) / 2, (HEIGHT - 500) / 2, 300, 500);
     }
 
-    function drawText(text, size, x, y, color) {
+    function drawText(text, size, x, y, color, align) {
       ctx.fillStyle = color;
       ctx.font = `${size}px "Microsoft JhengHei", sans-serif`;
-      ctx.textAlign = 'center';
+      ctx.textAlign = align;
       ctx.fillText(text, x, y);
     }
 
-    function questionText(text, size, x, y, color) {
+    function questionText(text, size, x, y, color, align) {
       const charsPerLine = 10;
       const lines = Math.ceil(text.length / charsPerLine);
       for (let i = 0; i < lines; i++) {
         const line = text.slice(i * charsPerLine, (i + 1) * charsPerLine);
-        drawText(line, size, x, y + i * size * 1.3, color);
+        drawText(line, size, x, y + i * size * 1.3, color, align);
       }
       return lines * size * 1.3;
     }
 
-    function answerText(options, size, x, y, color) {
+    function answerText(options, size, x, y, color, align) {
       let hover = null;
       for (let i = 0; i < options.length; i++) {
         const text = `(${String.fromCharCode(65+i)})${options[i]}`;
         const ty = y + i * size * 1.3;
-        drawText(text, size, x, ty, color);
+        drawText(text, size, x, ty, color, align);
 
         // 偵測 hover 區域
         ctx.font = `${size}px "Microsoft JhengHei"`;
@@ -734,8 +734,8 @@
       const idx = A.charCodeAt(0) - 65;
 
       if (showingQuestion) {
-        const yOffset = questionText(Q[0], 20, WIDTH / 2, 250, BLACK);
-        hoveringOpt = answerText(Q.slice(1), 20, WIDTH / 2, 250 + yOffset + 30, BLACK);
+        const yOffset = questionText(Q[0], 20, WIDTH / 2, 250, BLACK, "center");
+        hoveringOpt = answerText(Q.slice(1), 20, 20, 250 + yOffset + 30, BLACK, "left");
       } else {
         drawText(selectedOpt === idx ? "正確" : "錯誤", 20, WIDTH / 2, 230, selectedOpt === idx ? GREEN : RED);
         drawText(`(${A}) ${Q[1 + idx]}`, 20, WIDTH / 2, 260, BLACK);
