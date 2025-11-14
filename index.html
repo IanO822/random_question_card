@@ -657,39 +657,81 @@
       ctx.fillStyle = color;
       ctx.font = `${size}px "Microsoft JhengHei", sans-serif`;
       ctx.textAlign = align;
-      ctx.fillText(text, x, y);
+      ctx.textBaseline = "top"; // ← 重要：把 baseline 設成 top，y 對應到文字上邊界
+    ctx.fillText(text, x, y);
     }
 
+    // questionText：回傳（佔用的高度），且使用同一個 lineHeight
     function questionText(text, size, x, y, color, align) {
       const charsPerLine = 10;
       const lines = Math.ceil(text.length / charsPerLine);
+      const lineHeight = size * 1.3;
       for (let i = 0; i < lines; i++) {
         const line = text.slice(i * charsPerLine, (i + 1) * charsPerLine);
-        drawText(line, size, x, y + i * size * 1.3, color, align);
+        drawText(line, size, x, y + i * lineHeight, color, align);
       }
-      return lines * size * 1.3;
+      return lines * lineHeight;
     }
 
+    // wrapText 保持不變（每 limit 字分一行）
+    function wrapText(text, limit = 20) {
+      const lines = [];
+      for (let i = 0; i < text.length; i += limit) {
+        lines.push(text.slice(i, i + limit));
+      }
+      return lines;
+    }
+
+    // answerText：會處理多行、hover 區域計算、並累積 currentY 以避免重疊
     function answerText(options, size, x, y, color, align) {
       let hover = null;
-      for (let i = 0; i < options.length; i++) {
-        const text = `(${String.fromCharCode(65+i)})${options[i]}`;
-        const ty = y + i * size * 1.3;
-        drawText(text, size, x, ty, color, align);
+      const lineHeight = size * 1.3; // 與 questionText 同步
+      const optionGap = 8; // 每個選項區塊之間的間距（可調）
 
-        // 偵測 hover 區域
-        ctx.font = `${size}px "Microsoft JhengHei"`;
-        const width = ctx.measureText(text).width;
-        const height = size;
-        const left = x - width / 2, top = ty - size;
-        if (mouse.x >= left && mouse.x <= left + width &&
-            mouse.y >= top && mouse.y <= top + height) {
+      // 為了 measureText 要先設定 font
+      ctx.font = `${size}px "Microsoft JhengHei", sans-serif`;
+
+      let currentY = y; // 從 y 開始累積，每個選項會往下推
+
+      for (let i = 0; i < options.length; i++) {
+        const label = `(${String.fromCharCode(65 + i)})`;
+        const fullText = label + options[i];
+        const lines = wrapText(fullText, 16);  // 每 limit 字換行
+
+        // 繪製多行文字（根據 align）
+        for (let j = 0; j < lines.length; j++) {
+          const ty = currentY + j * lineHeight;
+          drawText(lines[j], size, x, ty, color, align);
+        }
+
+        // 計算整個選項區塊的寬高（以行中最寬一行為準）
+        const widths = lines.map(line => ctx.measureText(line).width);
+        const maxWidth = widths.length ? Math.max(...widths) : 0;
+        const blockHeight = lines.length * lineHeight;
+
+        // 根據 textAlign 計算 hover 的 left（讀者可參考三種 align）
+        let left;
+        if (align === "center") {
+          left = x - maxWidth / 2;
+      } else if (align === "right") {
+          left = x - maxWidth;
+        } else { // left 或預設
+          left = x;
+        }
+        const top = currentY;
+
+        // 滑鼠偵測
+        if (mouse.x >= left && mouse.x <= left + maxWidth &&
+            mouse.y >= top && mouse.y <= top + blockHeight) {
           hover = i;
 
-          // hover 邊框
           ctx.strokeStyle = DARK_GRAY;
-          ctx.strokeRect(left - 5, top - 2, width + 10, height + 6);
+          ctx.lineWidth = 2;
+          ctx.strokeRect(left - 5, top - 4, maxWidth + 10, blockHeight + 8);
         }
+
+        // 將 currentY 往下移動，為下一個選項留空間
+        currentY += blockHeight + optionGap;
       }
       return hover;
     }
@@ -737,9 +779,22 @@
         const yOffset = questionText(Q[0], 20, WIDTH / 2, 250, BLACK, "center");
         hoveringOpt = answerText(Q.slice(1), 20, 20, 250 + yOffset + 30, BLACK, "left");
       } else {
-        drawText(selectedOpt === idx ? "正確" : "錯誤", 20, WIDTH / 2, 230, selectedOpt === idx ? GREEN : RED);
-        drawText(`(${A}) ${Q[1 + idx]}`, 20, WIDTH / 2, 260, BLACK);
-      }
+        // 顯示 正確/錯誤
+        drawText(selectedOpt === idx ? "正確" : "錯誤",20, WIDTH / 2, 230, selectedOpt === idx ? GREEN : RED,"center");
+
+        // 答案內容文字（需換行）
+        const answerTextRaw = `(${A}) ${Q[1 + idx]}`;
+        const answerLines = wrapText(answerTextRaw, 17);  // 每 17 字換行
+
+        const size = 20;
+        const lineHeight = size * 1.3;
+        let currentY = 260;
+
+        // 多行繪製
+        for (let j = 0; j < answerLines.length; j++) {
+          drawText(answerLines[j], size, WIDTH / 2, currentY + j * lineHeight, BLACK, "center");
+            }
+          }
 
       requestAnimationFrame(gameLoop);
     }
