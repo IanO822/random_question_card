@@ -32,6 +32,7 @@
   <div id="btnFlip">翻牌</div>
 
   <script>
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const btnFlip = document.getElementById('btnFlip');
@@ -48,6 +49,8 @@
     const cardAImg = new Image();
     cardQImg.src = "桌遊資源/card_Q.png";
     cardAImg.src = "桌遊資源/card_A.png";
+    const acSound = new Audio("桌遊資源/ac.mp3");
+    const waSound = new Audio("桌遊資源/wa.mp3");
 
     // 題庫資料
     const cardData = {
@@ -639,6 +642,12 @@
 };
     const cardNames = Object.keys(cardData);
 
+    //撥放音效
+    function playSound(audio, startTime) {
+    audio.currentTime = startTime;
+    audio.play();
+    }
+
     // 初始化題目
     function drawNewCard() {
       current = cardNames[Math.floor(Math.random() * cardNames.length)];
@@ -753,6 +762,15 @@
       if (showingQuestion && hoveringOpt !== null && selectedOpt === null) {
         selectedOpt = hoveringOpt;
         showingQuestion = false;
+
+        const A = cardData[current].A[0];
+        const correctIdx = A.charCodeAt(0) - 65;
+
+        if (selectedOpt === correctIdx) {
+          playSound(acSound, 1); // 正確
+        } else {
+          playSound(waSound, 0); // 錯誤
+        }
       }
     });
 
